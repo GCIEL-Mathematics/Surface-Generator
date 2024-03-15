@@ -1,0 +1,137 @@
+#pragma kernel GenerateNoise
+#pragma kernel GenerateNoisePlane
+
+#include "Includes\MetricsCompute.compute"
+
+RWStructuredBuffer<float> _Weights;
+
+uint _IsPlane;
+uint _Function;
+float _Size;
+float _Scale;
+float _Amplitude;
+float _Frequency;
+float _OtherSize;
+float3 _Offset;
+float3 _PlaneRight;
+float3 _PlaneForward;
+uint _Orientation;
+
+
+float valCalc(float3 pos){
+    float val = 0;
+    float x = pos.x;
+    float y = pos.y;
+    float z = pos.z;
+    switch(_Function){
+        case 0:
+            val = x*x+y*y+z*z-9.0f;
+            break;
+        case 1:
+            val = x*x-y*y-4;
+            break;
+        case 2:
+            val = x+y+z;
+            break;
+        case 3:
+            y = y-0.7f;
+            val = (y * (y*y/4-.02*x*x)*(1-z*z/4)+(x*x+y*y)*(x*x+y*y)/16+(9/4*z*z-1)*(z*z/4-1))/2;
+            break;
+        case 4:
+            val = x*x - z*z*z - y;
+            break;
+        case 5:
+            val = z - sqrt(x*x+y*y);
+            break;
+        case 6:
+            val = 3*exp(-(x*x+y*y)) - z;
+            break;
+        case 7:
+            val = cos(x*x+y*y)*0.5f - z;
+            break;
+        case 8:
+            val = z*z-4*x*x-4*y*y-1;
+            break;
+        case 9:
+            val = x*x+y*y-z*z-1;
+            break;
+        case 10:
+            val = 4*x*x + 9*y*y + z*z - 9;
+            break;
+        case 11:
+            val = 9*x*x + 36*y*y - 4*z*z - .11;
+            break;
+        case 12:
+            val = 3*x*x + y*y - z;
+            break;
+        case 13:
+            val = 9*x*x + 16*y*y - 4*z*z - 36;
+            break;
+        case 14:
+            val = 9*x*x - 4*y*y - z;
+            break;
+        case 15:
+            val = -x*x - 4*y*y + 9*z*z - 9;
+            break;
+    }
+
+    return val;
+}
+
+float3 ExchangeAxis(float3 vec){
+    float3 newVec = vec;
+    switch(_Orientation){        
+        case 0:
+            newVec.z = vec.y;
+            newVec.y = vec.z;
+            break;
+        case 1:
+            newVec.y = vec.x;
+            newVec.z = vec.y;
+            newVec.x = vec.z;
+            break;
+        case 2:
+            newVec.z = vec.x;
+            newVec.x = vec.z;
+            break;
+    }
+    return newVec;
+}
+
+
+
+[numthreads(numThreads, numThreads, numThreads)]
+void GenerateNoise(uint3 id : SV_DispatchThreadID)
+{
+    
+    float3 pos = ((id - float3(1, 1, 1) * _ChunkSize / 2.0f)*_OtherSize + _Offset) / _Scale;
+    _Weights[indexFromCoord(id.x, id.y, id.z)] = 0;
+    pos = ExchangeAxis(pos);
+
+    float val = valCalc(pos);
+
+    if (val <= _Amplitude)
+    {
+        float sigmoid = 1 / (1 + exp(val));
+        _Weights[indexFromCoord(id.x, id.y, id.z)] = sigmoid;        
+    }
+}
+
+[numthreads(numThreads, numThreads, 1)]
+void GenerateNoisePlane(uint3 id : SV_DispatchThreadID)
+{
+
+    float3 pos = ((id.x - _ChunkSize / 2.0f) * _PlaneRight + (id.y - _ChunkSize / 2.0f) * _PlaneForward + _Offset) / _Scale;
+    _Weights[indexFromCoord(id.x, id.y, 0)] = 0;
+    pos = ExchangeAxis(pos);
+    
+
+    float val = valCalc(pos);
+
+    if (val <= _Amplitude)
+    {
+        float sigmoid = 1 / (1 + exp(val));
+        _Weights[indexFromCoord(id.x, id.y, 0)] = sigmoid;
+        
+    }
+}
