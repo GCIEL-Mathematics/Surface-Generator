@@ -1,6 +1,9 @@
 {
     "name": "edu.grinnell.gciel.surface-generator",
-    "references": [],
+    "references": [
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.RenderPipelines.Universal.Runtime"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

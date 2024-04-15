@@ -41,8 +41,6 @@ public class Surface : MonoBehaviour
             _ren.Add(chunks[i].GetComponent<Renderer>());
         }
 
-        
-
         // Each chunk's origin is defined in it's center so each chunk needs to be offset from the origin of the whole volume.
         float offsetVal = (GridMetrics.PointsPerChunk / 2f - 0.5f) * (size / 100f);
         var position = transform.position;
@@ -71,8 +69,19 @@ public class Surface : MonoBehaviour
                 _ren[i].enabled = false;
             }
         }
-
-
+        
+        // attach self to slice plane
+        Debug.Log("attempting to attach to slice plane");
+        var slicePlane = FindObjectOfType<SlicePlane>();
+        if (slicePlane)
+        {
+            Debug.Log("successfully attached to slice plane");
+            slicePlane.AttachSurface(this);
+        }
+        else
+        {
+            Debug.LogWarning("surface could not attach to slice plane");
+        }
     }
 
 
